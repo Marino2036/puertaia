@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: puertaia-cloud
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_API_KEY
+        sync: false
+      - key: DEVICE_TOKEN
+        sync: false
