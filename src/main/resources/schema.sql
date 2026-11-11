@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS door_commands (
     method VARCHAR(80) NOT NULL DEFAULT 'APP_CLOUD',
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     result_message TEXT,
+    param_text TEXT,
+    param_int INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     claimed_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ
@@ -33,3 +35,6 @@ CREATE TABLE IF NOT EXISTS access_events (
     detail TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE door_commands ADD COLUMN IF NOT EXISTS param_text TEXT;
+ALTER TABLE door_commands ADD COLUMN IF NOT EXISTS param_int INTEGER;

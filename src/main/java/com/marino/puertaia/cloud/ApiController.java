@@ -44,6 +44,7 @@ public class ApiController {
     public record CompleteRequest(String status, String message) {}
     public record HeartbeatRequest(String ssid, String ip, String firmware) {}
     public record EventRequest(String type, String user, String method, String detail) {}
+    public record DeviceCommandRequest(String action, String text, Integer number) {}
 
     @PostMapping("/app/doors/{doorId}/open")
     public Map<String,Object> open(@RequestHeader(value="X-APP-KEY", required=false) String key,
@@ -57,6 +58,29 @@ public class ApiController {
         Long id = jdbc.queryForObject(
                 "INSERT INTO door_commands(door_id,action,seconds,requested_by,method,status) VALUES (?,?,?,?,?,'PENDING') RETURNING id",
                 Long.class, doorId, "OPEN", seconds, user, method);
+        return Map.of("ok", true, "commandId", id, "status", "PENDING");
+    }
+
+
+    @PostMapping("/app/doors/{doorId}/command")
+    public Map<String,Object> deviceCommand(@RequestHeader(value="X-APP-KEY", required=false) String key,
+                                            @PathVariable String doorId,
+                                            @RequestBody DeviceCommandRequest body) {
+        requireApp(key);
+        if (body == null || body.action() == null || body.action().isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "action_required");
+        String action = body.action().trim().toUpperCase(Locale.ROOT);
+        Set<String> allowed = Set.of(
+                "FINGERPRINT_LIST", "FINGERPRINT_ENROLL_START", "FINGERPRINT_ENROLL_STATUS",
+                "FINGERPRINT_ENROLL_CANCEL", "FINGERPRINT_DELETE",
+                "WIFI_LIST", "WIFI_DELETE"
+        );
+        if (!allowed.contains(action))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "action_not_allowed");
+        Long id = jdbc.queryForObject(
+                "INSERT INTO door_commands(door_id,action,seconds,requested_by,method,status,param_text,param_int) VALUES (?,?,?,?,?,'PENDING',?,?) RETURNING id",
+                Long.class, doorId, action, 5, "Administrador", "APP_CLOUD_MAINTENANCE",
+                body.text(), body.number());
         return Map.of("ok", true, "commandId", id, "status", "PENDING");
     }
 
@@ -90,7 +114,7 @@ public class ApiController {
                                    @PathVariable String doorId) {
         requireDevice(token);
         List<Map<String,Object>> rows = jdbc.queryForList(
-                "SELECT id,action,seconds,requested_by,method FROM door_commands WHERE door_id=? AND status='PENDING' ORDER BY id LIMIT 1",
+                "SELECT id,action,seconds,requested_by,method,param_text,param_int FROM door_commands WHERE door_id=? AND status='PENDING' ORDER BY id LIMIT 1",
                 doorId);
         if (rows.isEmpty()) return Map.of("ok", true, "hasCommand", false);
         Map<String,Object> row = rows.get(0);

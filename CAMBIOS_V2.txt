@@ -1,0 +1,25 @@
+PUERTA IA - AFINADO CLOUD V2
+
+ANDROID
+- Flash/antorcha en acceso facial y registro de rostro cuando la cámara frontal lo soporta.
+- Panel Controlador ESP32 movido a Configuración.
+- Interfaz de controlador completamente en español y sin URL/JSON visibles.
+- Servidor, clave de aplicación, Door ID y token local ocultos de la interfaz.
+- Se eliminó Modo demostración.
+- Registro/consulta/eliminación de huellas físicas disponible por nube/datos móviles.
+- Redes Wi-Fi guardadas visibles y eliminables; la eliminación se ejecuta realmente en el ESP32.
+- Agregar una nueva red Wi-Fi sigue siendo local por seguridad de recuperación.
+
+ESP32
+- Nuevos comandos cloud: FINGERPRINT_LIST, FINGERPRINT_ENROLL_START,
+  FINGERPRINT_ENROLL_STATUS, FINGERPRINT_ENROLL_CANCEL, FINGERPRINT_DELETE,
+  WIFI_LIST, WIFI_DELETE.
+- Se conservan apertura, huella local, audio, multi-WiFi y funcionamiento offline de huella.
+
+BACKEND
+- Nuevo endpoint genérico de mantenimiento /api/app/doors/{doorId}/command.
+- door_commands ahora admite param_text y param_int.
+- Resultados de mantenimiento regresan por result_message sin mostrarse crudos en UI.
+
+IMPORTANTE
+Actualizar backend en GitHub/Render antes de probar huellas o Wi-Fi por datos móviles.
