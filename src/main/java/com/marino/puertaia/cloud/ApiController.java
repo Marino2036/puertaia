@@ -45,6 +45,7 @@ public class ApiController {
     public record HeartbeatRequest(String ssid, String ip, String firmware) {}
     public record EventRequest(String type, String user, String method, String detail) {}
     public record DeviceCommandRequest(String action, String text, Integer number) {}
+    public record FingerprintStateRequest(String stateJson) {}
 
     @PostMapping("/app/doors/{doorId}/open")
     public Map<String,Object> open(@RequestHeader(value="X-APP-KEY", required=false) String key,
@@ -107,6 +108,41 @@ public class ApiController {
         out.put("ok", true);
         out.put("online", online);
         return out;
+    }
+
+
+    @GetMapping("/app/doors/{doorId}/fingerprint-state")
+    public Map<String,Object> fingerprintState(@RequestHeader(value="X-APP-KEY", required=false) String key,
+                                               @PathVariable String doorId) {
+        requireApp(key);
+        List<Map<String,Object>> rows = jdbc.queryForList(
+                "SELECT fingerprint_state,fingerprint_state_updated_at FROM device_state WHERE door_id=?", doorId);
+        if (rows.isEmpty()) {
+            return Map.of("ok", true, "stateJson", "{\"state\":\"listo\",\"active\":false,\"step\":0,\"message\":\"Esperando al lector...\"}");
+        }
+        Object state = rows.get(0).get("fingerprint_state");
+        Object updated = rows.get(0).get("fingerprint_state_updated_at");
+        String stateJson = state == null ? "{\"state\":\"listo\",\"active\":false,\"step\":0,\"message\":\"Esperando al lector...\"}" : state.toString();
+        Map<String,Object> out = new LinkedHashMap<>();
+        out.put("ok", true);
+        out.put("stateJson", stateJson);
+        out.put("updatedAt", updated instanceof Timestamp t ? t.toInstant().toString() : updated);
+        return out;
+    }
+
+    @PostMapping("/device/{doorId}/fingerprint-state")
+    public Map<String,Object> updateFingerprintState(@RequestHeader(value="X-DEVICE-TOKEN", required=false) String token,
+                                                     @PathVariable String doorId,
+                                                     @RequestBody(required=false) FingerprintStateRequest body) {
+        requireDevice(token);
+        String stateJson = body == null || body.stateJson() == null ? "" : body.stateJson();
+        jdbc.update("""
+                INSERT INTO device_state(door_id,online,fingerprint_state,fingerprint_state_updated_at,last_seen)
+                VALUES (?,TRUE,?,NOW(),NOW())
+                ON CONFLICT (door_id) DO UPDATE SET online=TRUE,fingerprint_state=EXCLUDED.fingerprint_state,
+                    fingerprint_state_updated_at=NOW(),last_seen=NOW()
+                """, doorId, stateJson);
+        return Map.of("ok", true);
     }
 
     @GetMapping("/device/{doorId}/commands/next")
