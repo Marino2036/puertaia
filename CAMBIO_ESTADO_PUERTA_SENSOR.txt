@@ -1,0 +1,3 @@
+Se agregan device_state.door_open y door_state_updated_at.
+El ESP32 publica POST /api/device/{doorId}/door-state.
+GET /api/app/doors/{doorId}/status ya usa SELECT * y devuelve doorOpen automáticamente.

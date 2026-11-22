@@ -46,6 +46,7 @@ public class ApiController {
     public record EventRequest(String type, String user, String method, String detail) {}
     public record DeviceCommandRequest(String action, String text, Integer number) {}
     public record FingerprintStateRequest(String stateJson) {}
+    public record DoorStateRequest(Boolean open) {}
 
     @PostMapping("/app/doors/{doorId}/open")
     public Map<String,Object> open(@RequestHeader(value="X-APP-KEY", required=false) String key,
@@ -143,6 +144,22 @@ public class ApiController {
                     fingerprint_state_updated_at=NOW(),last_seen=NOW()
                 """, doorId, stateJson);
         return Map.of("ok", true);
+    }
+
+
+    @PostMapping("/device/{doorId}/door-state")
+    public Map<String,Object> updateDoorState(@RequestHeader(value="X-DEVICE-TOKEN", required=false) String token,
+                                              @PathVariable String doorId,
+                                              @RequestBody(required=false) DoorStateRequest body) {
+        requireDevice(token);
+        boolean open = body != null && Boolean.TRUE.equals(body.open());
+        jdbc.update("""
+                INSERT INTO device_state(door_id,online,door_open,door_state_updated_at,last_seen)
+                VALUES (?,TRUE,?,NOW(),NOW())
+                ON CONFLICT (door_id) DO UPDATE SET online=TRUE,door_open=EXCLUDED.door_open,
+                    door_state_updated_at=NOW(),last_seen=NOW()
+                """, doorId, open);
+        return Map.of("ok", true, "doorOpen", open);
     }
 
     @GetMapping("/device/{doorId}/commands/next")

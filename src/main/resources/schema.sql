@@ -41,3 +41,6 @@ ALTER TABLE door_commands ADD COLUMN IF NOT EXISTS param_int INTEGER;
 
 ALTER TABLE device_state ADD COLUMN IF NOT EXISTS fingerprint_state TEXT;
 ALTER TABLE device_state ADD COLUMN IF NOT EXISTS fingerprint_state_updated_at TIMESTAMPTZ;
+
+ALTER TABLE device_state ADD COLUMN IF NOT EXISTS door_open BOOLEAN;
+ALTER TABLE device_state ADD COLUMN IF NOT EXISTS door_state_updated_at TIMESTAMPTZ;
